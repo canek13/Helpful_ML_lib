@@ -530,4 +530,4 @@ def test_estimator(estimator,
             ' train = ', mean_squared_error(y_train, y_pred_train, squared=False))
         print('test = ', r2_score(y_test, y_pred), ' train = ', r2_score(y_train, y_pred_train))
     
-    return r, df.columns
+    return r, df.columns.tolist()
