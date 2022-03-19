@@ -20,7 +20,8 @@ def _get_str_features(data):
             
     return list_f
 
-def describe_values_dataframe(df):
+
+def describe_values_dataframe(df, return_transposed=None):
     '''
     Describes data in DataFrame: 
     unique values, not NaN values count,
@@ -30,17 +31,28 @@ def describe_values_dataframe(df):
     ----------
     df: pandas.DataFrame
         DataFrame to describe
-    
+    return_transposed: bool,
+        Default is False
+        If None the output will be transposed if df.shape[1] <= 13
+        If True returns transposed dataframe
+        
     Returns
     -------
     Described features in data: pd.DataFrame
+    
+    Describing statistics' names are in INDEX
+    
+            |col1 | col2
+    ---------------------
+    shape   | n   | n
+    nan_cnt | k   | m
 
     See also
     --------
     For better representation in Jupyter Notebook:
-    pd.set_option('display.max_columns', None)
-    pd.set_option("display.max_rows", 200)
-    # pd.reset_option("display.max_rows")
+    >>>pd.set_option('display.max_columns', None)
+    >>>pd.set_option("display.max_rows", 200)
+    >>># pd.reset_option("display.max_rows")
     '''
     nan_percent = (pd.isna(df).sum() / df.shape[0]) * 100
     nan_count = pd.isna(df).sum().astype(int)
@@ -48,13 +60,21 @@ def describe_values_dataframe(df):
     unique_values_cnt = [df[col].unique().size for col in df.columns]
     shape = [df[col].shape[0] for col in df.columns]
     
-    cols = np.round([shape, unique_values_cnt, no_nan_count, nan_count, nan_percent], 1)
-    index_names = ['shape', 'uniq_values', 'no_nan', 'nan', 'nan%']
+    cols = np.round([shape, unique_values_cnt, nan_count, nan_percent, no_nan_count], 2)
+    index_names = ['shape', 'uniq_values', 'nan_cnt', 'nan%', 'no_nan_cnt']
     col_names = df.columns
     d = pd.DataFrame(data=cols,
                     index=index_names,
                     columns=col_names)
-    return d.transpose()
+    
+    if return_transposed or (return_transposed is None and df.shape[1] <= 13):
+        d = d.transpose()
+        int_args = [name 
+                        for name in index_names 
+                        if name.find('%') == -1]
+        d[int_args] = d[int_args].astype(int)
+    
+    return d
 
 def reduce_memory_usage(df: pd.DataFrame) -> pd.DataFrame:
     """ 
