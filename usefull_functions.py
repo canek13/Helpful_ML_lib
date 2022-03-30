@@ -78,10 +78,14 @@ def describe_values_dataframe(df, return_transposed=None):
     
     return d
 
-def reduce_memory_usage(df: pd.DataFrame, limit_uniq_cnt=None):
+def reduce_memory_usage(df: pd.DataFrame, 
+                        limit_uniq_cnt=None,
+                        transfrom_to_category=False):
     """ 
     Iterate through all the columns of a dataframe 
     and modify the data type to reduce memory usage.
+
+    INPLACE OPERATION!!!
 
     Parameters
     ----------
@@ -91,6 +95,9 @@ def reduce_memory_usage(df: pd.DataFrame, limit_uniq_cnt=None):
         Checks for unique values in seria.
         If uniq_values less than parameter prints log.
         if None: NO printing.
+    transfrom_to_category: bool, default False
+        Whether to transform object-type column to category-type
+        (In case is_categorical_column(col) = True)
     
     Returns
     -------
@@ -122,7 +129,7 @@ def reduce_memory_usage(df: pd.DataFrame, limit_uniq_cnt=None):
                     df[col] = df[col].astype(np.float32)
                 else:
                     df[col] = df[col].astype(np.float64)
-        else:
+        elif transfrom_to_category:
             df[col] = df[col].astype('category')
 
     end_mem = df.memory_usage().sum() / 1024**2
