@@ -9,6 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 
+from tqdm import tqdm
+
 def _get_str_features(data):
     """
     Returns 
@@ -76,7 +78,7 @@ def describe_values_dataframe(df, return_transposed=None):
     
     return d
 
-def reduce_memory_usage(df: pd.DataFrame) -> pd.DataFrame:
+def reduce_memory_usage(df: pd.DataFrame, limit_uniq_cnt=None):
     """ 
     Iterate through all the columns of a dataframe 
     and modify the data type to reduce memory usage.
@@ -85,6 +87,10 @@ def reduce_memory_usage(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df: pandas.DataFrame
         Dataframe to reduce memory usage
+    limit_uniq_cnt: int, optional
+        Checks for unique values in seria.
+        If uniq_values less than parameter prints log.
+        if None: NO printing.
     
     Returns
     -------
@@ -93,10 +99,11 @@ def reduce_memory_usage(df: pd.DataFrame) -> pd.DataFrame:
     start_mem = df.memory_usage().sum() / 1024**2
     print('Memory usage of dataframe is {:.2f} MB'.format(start_mem))
     
-    for col in df.columns:
+    for col in tqdm(df.columns):
         col_type = df[col].dtype
         
-        if not is_categorical_column(df[col]): # col_type != object:
+        if not is_categorical_column(df[col], 
+                    limit_uniq_cnt=limit_uniq_cnt): # col_type != object:
             c_min = df[col].min()
             c_max = df[col].max()
             if str(col_type)[:3] == 'int':
@@ -550,4 +557,4 @@ def test_estimator(estimator,
             ' train = ', mean_squared_error(y_train, y_pred_train, squared=False))
         print('test = ', r2_score(y_test, y_pred), ' train = ', r2_score(y_train, y_pred_train))
     
-    return r, df.columns.tolist()
+    return r, df.columns
