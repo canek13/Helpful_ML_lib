@@ -106,6 +106,8 @@ def reduce_memory_usage(df: pd.DataFrame,
     start_mem = df.memory_usage().sum() / 1024**2
     print('Memory usage of dataframe is {:.2f} MB'.format(start_mem))
     
+    datetime_types = {np.dtype('datetime64[ns]'), np.dtype('<M8[ns]'), np.dtype('<m8[ns]')}
+    
     for col in tqdm(df.columns):
         col_type = df[col].dtype
         
@@ -122,8 +124,7 @@ def reduce_memory_usage(df: pd.DataFrame,
                     df[col] = df[col].astype(np.int32)
                 elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
                     df[col] = df[col].astype(np.int64)  
-            elif not ( col_type == np.dtype('datetime64[ns]') \
-                    or col_type == np.dtype('<M8[ns]') ): # or col_type == np.dtype('>M8[ns]')
+            elif col_type not in datetime_types:
                 if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
                     df[col] = df[col].astype(np.float16)
                 elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
@@ -305,8 +306,65 @@ def get_permutation_indexes_train_test(df_shape: tuple,
     
     return mask == 1
 
+
+def fillna_inplace_with_median(df, columns_to_groupby, columns_to_fillna):
+    '''
+    Fills nans in dataframe with median inplace!
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        Input data
+    columns_to_groupby: list or ndarray of str
+        Column names of input data to group on
+    columns_to_fillna: list or ndarray of str
+        Column names of input data to fill Nan values
+
+    Returns
+    -------
+    None
+
+    See Also
+    --------
+    fillinf_inplace_with_median: fills infnities with median inplace
+    '''
+    for column_to_fillna in columns_to_fillna:
+        #for column_to_groupby in columns_to_groupby:
+            df[column_to_fillna] = df[column_to_fillna].fillna(
+                                    df.groupby(columns_to_groupby)[column_to_fillna].
+                                    transform('median'))
+
+def fillinf_inplace_with_median(df, columns_to_groupby, columns_to_fillinf):
+    '''
+    Fills infinities in dataframe with median inplace!
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        Input data
+    columns_to_groupby: list or ndarray of str
+        Column names of input data to group on
+    columns_to_fillna: list or ndarray of str
+        Column names of input data to fill inf values
+
+    Returns
+    -------
+    None
+
+    See Also
+    --------
+    fillna_inplace_with_median: fills NaNs with median inplace
+    '''
+    for column_to_fillinf in columns_to_fillinf:
+        
+        df[column_to_fillinf][np.isinf(df[column_to_fillinf])] = df.groupby(
+                                                                        columns_to_groupby
+                                                                        )[column_to_fillinf].transform('median')
+    return
+
+
 def test_catboost(data, 
-                  drop_columns=['globalcode', 'onekeyid', 'tetlong',], 
+                  drop_columns=[], 
                   add_cat_features=[], 
                   target_column_name=None, 
                   train_mask=None,
@@ -410,60 +468,6 @@ def test_catboost(data,
     
     return c, df.columns.tolist()
 
-def fillna_inplace_with_median(df, columns_to_groupby, columns_to_fillna):
-    '''
-    Fills nans in dataframe with median inplace!
-
-    Parameters
-    ----------
-    df: pandas.DataFrame
-        Input data
-    columns_to_groupby: list or ndarray of str
-        Column names of input data to group on
-    columns_to_fillna: list or ndarray of str
-        Column names of input data to fill Nan values
-
-    Returns
-    -------
-    None
-
-    See Also
-    --------
-    fillinf_inplace_with_median: fills infnities with median inplace
-    '''
-    for column_to_fillna in columns_to_fillna:
-        #for column_to_groupby in columns_to_groupby:
-            df[column_to_fillna] = df[column_to_fillna].fillna(
-                                    df.groupby(columns_to_groupby)[column_to_fillna].
-                                    transform('median'))
-
-def fillinf_inplace_with_median(df, columns_to_groupby, columns_to_fillinf):
-    '''
-    Fills infinities in dataframe with median inplace!
-
-    Parameters
-    ----------
-    df: pandas.DataFrame
-        Input data
-    columns_to_groupby: list or ndarray of str
-        Column names of input data to group on
-    columns_to_fillna: list or ndarray of str
-        Column names of input data to fill inf values
-
-    Returns
-    -------
-    None
-
-    See Also
-    --------
-    fillna_inplace_with_median: fills NaNs with median inplace
-    '''
-    for column_to_fillinf in columns_to_fillinf:
-        
-        df[column_to_fillinf][np.isinf(df[column_to_fillinf])] = df.groupby(
-                                                                        columns_to_groupby
-                                                                        )[column_to_fillinf].transform('median')
-    return
 
 def test_estimator(estimator, 
                    data_X,
