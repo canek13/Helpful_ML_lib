@@ -418,7 +418,7 @@ def test_catboost(data,
     df = data.copy()
     target = df[target_column_name].values
     
-    df = df.drop(columns=drop_columns + [target_column_name])
+    df = df.drop(columns=drop_columns + [target_column_name], errors='ignore')
     cat_f, cat_f_i, \
     not_cat_f, not_cat_f_i = get_cat_features(df, 
                                             return_only_cat=False)
@@ -448,6 +448,9 @@ def test_catboost(data,
         c = CatBoostClassifier(**cat_kwargs, cat_features=cat_f_i, logging_level='Silent')
     
     c.fit(X_train, y_train)
+    
+    if not('verbose' in cat_kwargs.keys() or 'logging_level' in cat_kwargs.keys() or 'metric_period' in cat_kwargs.keys()):
+        cat_kwargs['logging_level'] = 'Silent'
     
     if return_proba:
         if regressor_catboost:
