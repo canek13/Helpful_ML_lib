@@ -34,6 +34,8 @@ def change_dtypes4dttm_cols(df):
 
 def add_groupby_rolling(df, feature_cols=[], groupby_cols=[], windows=None):
     """
+    Returns dataframe with new cols
+
     grp_roll_mean{wind_str}_{col}
     
     {col} from feature_cols
@@ -57,6 +59,18 @@ def add_groupby_rolling(df, feature_cols=[], groupby_cols=[], windows=None):
             if col_name in df.columns:
                 df = df.drop(columns=col_name)
             df = df.join(tmp_mean.reset_index([0,1], drop=True))
+
+            col_name = f'grp_roll_std{wind_str}_{col}'
+            tmp_std = df.groupby(groupby_cols, sort=False)[col] \
+                        .rolling(window=wind, min_periods=1) \
+                        .std() \
+                        .rename(col_name)
+            if col_name in df.columns:
+                df = df.drop(columns=col_name)
+            df = df.join(tmp_std.reset_index([0,1], drop=True))
+    
+    return df
+
 
 def describe_values_dataframe(df, return_transposed=None):
     '''
