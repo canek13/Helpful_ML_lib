@@ -32,6 +32,31 @@ def change_dtypes4dttm_cols(df):
             df[col] = pd.to_datetime(df[col])
     print('date-columns dtypes changed')
 
+def add_groupby_rolling(df, feature_cols=[], groupby_cols=[], windows=None):
+    """
+    grp_roll_mean{wind_str}_{col}
+    
+    {col} from feature_cols
+    {wind_str} from windows
+    """
+    if isinstance(windows, int) or windows is None:
+        windows=[windows]
+       
+    for col in tqdm(feature_cols, desc='cols'):
+        for wind in windows:
+            
+            wind_str = wind
+            if wind is None:
+                wind = df.shape[0]
+               
+            col_name = f'grp_roll_mean{wind_str}_{col}'
+            tmp_mean = df.groupby(groupby_cols, sort=False)[col] \
+                         .rolling(window=wind, min_periods=1) \
+                         .mean() \
+                         .rename(col_name)
+            if col_name in df.columns:
+                df = df.drop(columns=col_name)
+            df = df.join(tmp_mean.reset_index([0,1], drop=True))
 
 def describe_values_dataframe(df, return_transposed=None):
     '''
