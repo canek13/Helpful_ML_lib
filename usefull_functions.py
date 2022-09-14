@@ -22,6 +22,16 @@ def _get_str_features(data):
             
     return list_f
 
+def change_dtypes4dttm_cols(df):
+    """
+    Changes object columns in pandas DataFrame to datetime inplace.
+    pd.to_datetime is used
+    """
+    for col in tqdm(df.columns):
+        if col.endswith('_dttm'):
+            df[col] = pd.to_datetime(df[col])
+    print('date-columns dtypes changed')
+
 
 def describe_values_dataframe(df, return_transposed=None):
     '''
