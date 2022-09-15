@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 
+import os
+import pickle
+
 from catboost import CatBoostRegressor
 from catboost import CatBoostClassifier
 
@@ -21,6 +24,68 @@ def _get_str_features(data):
               type(data.loc[data[col].notna(), col].iloc[0]) == str]
             
     return list_f
+
+def save_csv(df, fname, filepath='./', dtypes_dirname='dtypes', **to_csv_kwargs):
+    """
+    Save Dataframe to csv with its column dtypes.
+    """
+    if not('index' in to_csv_kwargs.keys()):
+        to_csv_kwargs['index'] = False
+    
+    if fname.endswith('.csv'):
+        df.to_csv(filepath + fname, **to_csv_kwargs)
+        fname = fname[:-4]
+    else:
+        df.to_csv(filepath + fname + '.csv', **to_csv_kwargs)
+
+    if dtypes_dirname in os.listdir():
+        if os.path.isdir(filepath + dtypes_dirname):
+            print(f"dtypes_dirname '{dtypes_dirname}' already exists. Saving there")
+        else:
+            raise IsADirectoryError(f"{dtypes_dirname} is a file and already exists.")
+    else:
+        os.mekedirs(filepath + dtypes_dirname)
+    
+    with open(filepath + dtypes_dirname + '/dtypes_' + fname + '.pkl', 'wb') as f:
+        pickle.dump(df.dtypes.to_dict(), f)
+    
+    return
+
+def read_csv(fname, filepath='./', dtypes_dirname='dtypes', **read_csv_kwargs):
+    """
+    Reads csv dataframe with explicit dtypes from file.
+    """
+    if dtypes_dirname not in os.listdir(filepath):
+        raise FileNotFoundError(f"Directory {dtypes_dirname} is not found")
+
+    if fname.endswith('.csv'):
+        fname = fname[:-4]
+
+    with open(filepath + dtypes_dirname + '/dtypes_' + fname + '.pkl', 'rb') as f:
+        dic = pickle.load(f)
+
+    dic_date = dict()
+    dic_other = dict()
+    dic_time = dict()
+
+    for col_name, col_dtype in dic.items():
+        if v == np.dtype('datetime64[ns]'):
+            dic_date[col_name] = col_dtype
+        elif v == np.dtype('timedelta64[ns]'):
+            dic_time[col_name] = col_dtype
+        else:
+            dic_other[col_name] = col_dtype
+
+    df = pd.read_csv(
+        filepath + fname + '.csv',
+        dtype=dic_other,
+        parse_dates=list(dic_date.keys()),
+        **read_csv_kwargs,
+    )
+    for col_name, col_dtype in dic_time.items():
+        df[col_name] = pd.to_timedelta(df[col_name])
+    
+    return df
 
 def change_dtypes4dttm_cols(df):
     """
